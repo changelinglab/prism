@@ -66,6 +66,21 @@ python src/main.py trainer.max_epochs=20 data.batch_size=64
 - **[Tokenization Workflow](docs/tokenization.md)** - How to build vocabularies and use tokenizers for IPA transcripts
 - **[Contributing Guide](CONTRIBUTING.md)** - Project structure, workflow, and best practices for contributors
 
+## Citation
+If you use this code in your research, please cite our paper:
+
+```bibtex
+@misc{prism2026,
+      title={PRiSM: Benchmarking Phone Realization in Speech Models}, 
+      author={Shikhar Bharadwaj and Chin-Jou Li and Yoonjae Kim and Kwanghee Choi and Eunjung Yeo and Ryan Soh-Eun Shim and Hanyu Zhou and Brendon Boldt and Karen Rosero Jacome and Kalvin Chang and Darsh Agrawal and Keer Xu and Chao-Han Huck Yang and Jian Zhu and Shinji Watanabe and David R. Mortensen},
+      year={2026},
+      eprint={2601.14046},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2601.14046}, 
+}
+```
+
 ## ❤️ Acknowledgement
 
 This repository structure is based on the [Lightning-Hydra-Template](https://github.com/ashleve/lightning-hydra-template).
