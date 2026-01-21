@@ -21,8 +21,8 @@ A benchmark for evaluating phonetic models.
 
 ```bash
 # clone project
-git clone git@github.com:changelinglab/PhoneBench.git
-cd PhoneBench
+git clone git@github.com:changelinglab/prism.git
+cd prism
 
 # create environment with your favourite package manager 
 # and install dependencies from requirements.txt
