@@ -24,12 +24,12 @@ from icefall.utils import add_sos
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .encoder_interface import EncoderInterface
-from .scaling import ScaledLinear
+from src.model.zipa.zipformer_crctc.model.encoder_interface import EncoderInterface
+from src.model.zipa.zipformer_crctc.model.scaling import ScaledLinear
 
-from .spec_augment import SpecAugment, time_warp
+from src.model.zipa.zipformer_crctc.model.spec_augment import SpecAugment, time_warp
 
-from .utils import make_pad_mask
+from src.model.zipa.zipformer_crctc.model.utils import make_pad_mask
 
 
 class AsrModel(nn.Module):
