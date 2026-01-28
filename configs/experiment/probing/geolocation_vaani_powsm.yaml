@@ -33,7 +33,7 @@ callbacks:
   early_stopping:
     monitor: "val/err_km"
     mode: "min"
-    patience: 10
+    patience: 5
 
 model:
   head:

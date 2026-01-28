@@ -1,6 +1,6 @@
 """Common model components."""
 
-from .ipa_embedding import IPAEmbedding
+from src.model.common.ipa_embedding import IPAEmbedding
 
 __all__ = ["IPAEmbedding"]
 

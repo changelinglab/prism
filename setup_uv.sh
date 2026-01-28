@@ -47,7 +47,7 @@ fi
 cd icefall
 rm -rf .git
 uv pip install -r requirements.txt
-export PYTHONPATH=$(pwd):$PYTHONPATH
+uv pip install -e .
 cd ..
 
 echo "Setup complete."

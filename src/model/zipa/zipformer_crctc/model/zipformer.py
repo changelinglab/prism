@@ -24,8 +24,8 @@ import warnings
 from typing import List, Optional, Tuple, Union
 
 import torch
-from .encoder_interface import EncoderInterface
-from .scaling import (
+from src.model.zipa.zipformer_crctc.model.encoder_interface import EncoderInterface
+from src.model.zipa.zipformer_crctc.model.scaling import (
     Identity,  # more friendly to backward hooks than nn.Identity(), for diagnostic reasons.
     ScaledLinear,  # not as in other dirs.. just scales down initial parameter values.
     ActivationDropoutAndLinear,

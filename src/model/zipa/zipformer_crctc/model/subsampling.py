@@ -20,7 +20,7 @@ import warnings
 from typing import Tuple
 
 import torch
-from .scaling import (
+from src.model.zipa.zipformer_crctc.model.scaling import (
     Balancer,
     BiasNorm,
     Dropout3,

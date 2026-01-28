@@ -45,7 +45,7 @@ callbacks:
   early_stopping:
     monitor: "val/err_km"
     mode: "min"
-    patience: 10
+    patience: 5
 
 data:
   batch_size: 48 # 48 on delta-ai, 24 on delta (1gpu)

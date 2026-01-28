@@ -16,7 +16,7 @@
 
 import torch
 import torch.nn as nn
-from .scaling import ScaledLinear
+from src.model.zipa.zipformer_crctc.model.scaling import ScaledLinear
 
 
 class Joiner(nn.Module):
