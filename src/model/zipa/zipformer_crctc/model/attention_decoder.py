@@ -21,8 +21,8 @@ from typing import List, Optional
 import k2
 import torch
 import torch.nn as nn
-from .label_smoothing import LabelSmoothingLoss
-from .scaling import penalize_abs_values_gt
+from src.model.zipa.zipformer_crctc.model.label_smoothing import LabelSmoothingLoss
+from src.model.zipa.zipformer_crctc.model.scaling import penalize_abs_values_gt
 from icefall.utils import add_eos, add_sos, make_pad_mask
 
 

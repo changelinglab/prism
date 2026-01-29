@@ -17,7 +17,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .scaling import Balancer
+from src.model.zipa.zipformer_crctc.model.scaling import Balancer
 
 
 class Decoder(nn.Module):
