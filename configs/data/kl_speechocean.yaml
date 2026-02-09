@@ -1,0 +1,16 @@
+# Usage:
+#   - python src/main.py experiment=inference/transcribe_w2v2ph data=kl_speechocean task_name=inf_kl_speechocean_ctag inference.inference_runner.hf_repo=KoelLabs/xlsr-english-01
+#   - python scripts/jsonl2json.py --dirname exp/runs/inf_kl_speechocean_ctag/<run_id>
+#   - python -m src.metrics.phone_recognition --evaluation_name kl-english-1 --prediction_file exp/runs/inf_kl_speechocean_ctag/<run_id>/transcription.json --output_file exp/runs/inf_kl_speechocean_ctag/<run_id>/inventory_results.csv --gt_field target --key_field utt_id
+#
+# Note: by swapping out hf_repo and cache_dir, you can use any of the 12 datasets here: https://huggingface.co/collections/KoelLabs/processed-datasets
+
+_target_: src.data.koel_labs.ipa_datamodule.KoelIPADataModule
+hf_repo: KoelLabs/SpeechOcean
+cache_dir: ${paths.cache_dir}/kl_SpeechOcean
+tokenizer:
+  _target_: src.core.ipa_utils.IPATokenizer
+target_sr: 16000
+batch_size: 32 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 10 # Lower/increase to the number of workers on the system. To high might cause lagginess/freezes
+pin_memory: False
