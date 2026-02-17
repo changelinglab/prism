@@ -35,6 +35,11 @@ inference:
 
   inference_runner:
     _target_: src.model.gemini.predict.DirectPromptInference
+    prompting:
+      mode: zero_shot # zero_shot | few_shot
+      seed: ${seed}
+      # used when mode=few_shot (datamodule for support examples, usually same as ${data})
+      support_data_cfg: ${data}
     client_config:
       model_name: "gemini-2.5-flash"
       api_key: ${oc.env:GEMINI_API_KEY}

@@ -24,6 +24,9 @@ prompt_config:
     - Do NOT include any explanation, markdown, or extra text.
     - If uncertain, give your best estimate within the valid range.
   user_prompt: "Rate the sentence-level pronunciation accuracy on an integer scale of 0-10. Output only the integer score."
+  few_shot:
+    policy: all_class_coverage
+    k: null
 
 client_config:
   response_schema:

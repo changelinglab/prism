@@ -39,6 +39,9 @@ prompt_config:
     - Return JSON with a single field `class_id` containing an integer from 0 to 12.
     - Do NOT include any explanation, markdown, or extra text.
   user_prompt: "Listen to this English speech and classify the speaker's accent cluster. Output only the class_id (0-12)."
+  few_shot:
+    policy: all_class_coverage
+    k: null
 
 client_config:
   response_schema:

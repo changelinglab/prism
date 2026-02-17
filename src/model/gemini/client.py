@@ -161,30 +161,81 @@ class GeminiClient:
         Returns:
             Model's response text.
         """
+        messages = [
+            {
+                "role": "user",
+                "text": prompt,
+                "files": files,
+            }
+        ]
+        return self.generate_from_messages(
+            messages=messages,
+            system_prompt=system_prompt,
+            anonymize=anonymize,
+        )
+
+    def generate_from_messages(
+        self,
+        messages: list[dict[str, Any]],
+        system_prompt: Optional[str] = None,
+        anonymize: bool = True,
+    ) -> str:
+        """
+        Generate content from multi-turn messages.
+
+        Args:
+            messages: List of turn dictionaries with keys:
+                - role: "user", "model"
+                - text: turn text
+                - files: optional file path or list of file paths (user turns only)
+            system_prompt: Optional system instruction for the model.
+            anonymize: If True, anonymize filenames before upload.
+
+        Returns:
+            Model's response text.
+        """
         uploaded_files: list[UploadedFile] = []
 
         try:
-            # 1. Upload files if provided
-            if files is not None:
-                # Normalize to list
-                files_to_process = (
-                    [files] if isinstance(files, (str, Path)) else list(files)
-                )
-                for file_path in files_to_process:
-                    uploaded = self._upload_file(Path(file_path), anonymize=anonymize)
-                    uploaded_files.append(uploaded)
+            contents: list[types.Content] = []
 
-            # 2. Generate content
-            response_text = self._generate_content(
-                uploaded_files=uploaded_files,
-                prompt=prompt,
+            for turn in messages:
+                role = str(turn.get("role", "user")).strip().lower()
+                if role not in {"user", "model"}:
+                    raise ValueError(
+                        f"Invalid message role: {role}. Supported roles are user or model."
+                    )
+
+                parts: list[types.Part] = []
+                text = str(turn.get("text", "")).strip()
+                files = turn.get("files")
+
+                if role == "user" and files is not None:
+                    file_paths = [files] if isinstance(files, (str, Path)) else list(files)
+                    for file_path in file_paths:
+                        uploaded = self._upload_file(Path(file_path), anonymize=anonymize)
+                        uploaded_files.append(uploaded)
+                        parts.append(
+                            types.Part(
+                                file_data=types.FileData(
+                                    file_uri=uploaded.file.uri,
+                                    mime_type=uploaded.file.mime_type,
+                                )
+                            )
+                        )
+
+                if text:
+                    parts.append(types.Part(text=text))
+                if not parts:
+                    raise ValueError("Each message must include text or at least one file")
+
+                contents.append(types.Content(role=role, parts=parts))
+
+            return self._generate_content_from_contents(
+                contents=contents,
                 system_prompt=system_prompt,
             )
-
-            return response_text
-
         finally:
-            # 3. Cleanup uploaded files
             for uploaded in uploaded_files:
                 self._delete_file(uploaded)
 
@@ -252,42 +303,19 @@ class GeminiClient:
             # Silently ignore deletion errors
             pass
 
-    def _generate_content(
-        self,
-        uploaded_files: list[UploadedFile],
-        prompt: str,
-        system_prompt: Optional[str] = None,
+    def _generate_content_from_contents(
+        self, contents: list[types.Content], system_prompt: Optional[str] = None
     ) -> str:
         """
         Generate content using Gemini API.
 
         Args:
-            uploaded_files: List of uploaded files to include in the request.
-            prompt: User prompt text.
+            contents: Multi-turn contents payload.
             system_prompt: Optional system instruction.
 
         Returns:
             Model's response text.
         """
-        # Build content parts
-        parts: list[types.Part] = []
-
-        # Add file parts
-        for uploaded in uploaded_files:
-            file_part = types.Part(
-                file_data=types.FileData(
-                    file_uri=uploaded.file.uri,
-                    mime_type=uploaded.file.mime_type,
-                )
-            )
-            parts.append(file_part)
-
-        # Add text prompt
-        parts.append(types.Part(text=prompt))
-
-        # Build contents
-        contents = [types.Content(role="user", parts=parts)]
-
         # Build generation config
         config_kwargs: dict[str, Any] = {
             "temperature": self.temperature,
