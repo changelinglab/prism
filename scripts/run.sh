@@ -23,7 +23,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   --model LIST        Models: powsm, powsm_ctc, ctag, lv60, xlsr53, zipactc, zipactc_ns, or "all"
-  --recipe LIST       Recipes: geo_in, l1cls_cmu, l1cls_ed, l2as, lid_fl, atyp_ec, atyp_ua, atyp_us, inference, cascade_rnn_cls
+  --recipe LIST       Recipes: geo_in, l1cls_cmu, l1cls_ed, l2as, lid_fl, atyp_ec, atyp_ua, atyp_us, inference, predict, cascade_rnn_cls
   --data LIST         Datasets: timit, geo_in, edacc, cmul2arctic, speechocean, fleurs, or "all"
   --cluster NAME      Cluster: babel (default: babel)
   --fft               Enable full fine-tuning
@@ -45,6 +45,8 @@ EOF
 setup="probing"
 if [ "$recipe" = "inference" ]; then
     setup="inference"
+elif [ "$recipe" = "predict" ]; then
+    setup="predict"
 elif [[ "$recipe" == *cascade* ]]; then
     setup="cascade"
 fi
@@ -62,6 +64,7 @@ summary_log="${exp_dir}/${run_name}.summary.log"
 # Cluster configurations
 declare -A cluster_configs=(
     ["babel"]="scripts/babel.batch"
+    ["vllm"]="scripts/vllm_dai.batch"
 )
 
 # Model configurations: base_model|hf_repo
@@ -92,9 +95,22 @@ declare -A recipe_configs=(
     ["atyp_ua"]="atypical_uaspeech"
     ["atyp_us"]="atypical_ultrasuite"
     ["inference"]="transcribe"
+    ["predict"]="predict"
     ["cascade_rnn_cls"]="rnn_classification"
     ["cascade_rnn_reg"]="rnn_regression"
     ["cascade_rnn_geo"]="rnn_geolocation"
+)
+
+# Dataset -> recipe code for predict (only prompt-capable datasets; reuse recipe_configs for prompt name)
+declare -A data_to_recipe=(
+    ["cmul2arctic"]="l1cls_cmu"
+    ["edacc"]="l1cls_ed"
+    ["speechocean"]="l2as"
+    ["fleurs"]="lid_fl"
+    ["geo_in"]="geo_in"
+    ["easycall"]="atyp_ec"
+    ["uaspeech"]="atyp_ua"
+    ["ultrasuite"]="atyp_us"
 )
 
 # Dataset configurations: dataset|num_classes (num_classes is empty if not applicable)
@@ -144,6 +160,10 @@ generate_list() {
 construct_config_name() {
     local model_var=$1 recipe_code=$2
     local base=$(get_base_model "$model_var")
+    if [ "$setup" = "predict" ]; then
+        echo "configs/experiment/inference/predict_${base}.yaml"
+        return
+    fi
     local recipe_full="${recipe_configs[$recipe_code]}"
     if [ "$setup" = "cascade" ]; then
         echo "configs/experiment/${setup}/${recipe_full}.yaml"
@@ -186,6 +206,29 @@ construct_cmd_for_inference() {
         if [ -n "$repo" ]; then
             cmd+=" inference.inference_runner.hf_repo=$repo"
         fi
+        [ -n "$extra_args" ] && cmd+=" $extra_args"
+        cmds+=("$cmd")
+    done
+    printf '%s\n' "${cmds[@]}"
+}
+
+construct_cmd_for_predict() {
+    local model_var=$1 config_file=$2
+    shift 2
+    local datasets=("$@")
+    local script="${cluster_configs[$cluster]}"
+    local config_basename="${config_file##*/}"
+    local model_short="${config_basename%.yaml}"
+    model_short="${model_short#predict_}"
+    local cmds=()
+    for dataset_code in "${datasets[@]}"; do
+        [ -z "$dataset_code" ] && continue
+        [[ ! -v data_to_recipe[$dataset_code] ]] && continue
+        local recipe_code="${data_to_recipe[$dataset_code]}"
+        local prompt_name="${recipe_configs[$recipe_code]}"
+        local dataset_name="${dataset_configs[$dataset_code]%%|*}"
+        local task_name="dp_${model_short}_${prompt_name}"
+        local cmd="sbatch${sbatch_args:+ $sbatch_args} $script experiment=inference/${config_basename} data=$dataset_name prompt=$prompt_name task_name=$task_name"
         [ -n "$extra_args" ] && cmd+=" $extra_args"
         cmds+=("$cmd")
     done
@@ -260,6 +303,13 @@ run_experiment() {
     case "$setup" in
         inference)
             cmd_list=$(construct_cmd_for_inference "$model_var" "$config_file" "${datasets[@]}") || {
+                log "Error constructing commands for $model_var on $recipe_code (config: $config_file)"
+                echo "ERROR: $model_var on $recipe_code" >> "$summary_log"
+                return 1
+            }
+            ;;
+        predict)
+            cmd_list=$(construct_cmd_for_predict "$model_var" "$config_file" "${datasets[@]}") || {
                 log "Error constructing commands for $model_var on $recipe_code (config: $config_file)"
                 echo "ERROR: $model_var on $recipe_code" >> "$summary_log"
                 return 1
