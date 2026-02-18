@@ -4,6 +4,7 @@ Qwen Direct Prompt Inference for PRiSM.
 Uses the same distributed_inference contract and shared few-shot infrastructure
 as Gemini DirectPromptInference. Returns a single prediction dict per sample
 (classification, regression, geolocation). Audio is sent to vLLM as base64 data URIs.
+Qwen3 uses 12.5 tokens per second of audio.
 """
 
 import base64
@@ -107,7 +108,9 @@ class QwenDirectPromptInference:
             except OSError:
                 pass
 
-    def _get_cache_key(self, audio_path: Union[str, Path], kwargs: dict[str, Any]) -> str:
+    def _get_cache_key(
+        self, audio_path: Union[str, Path], kwargs: dict[str, Any]
+    ) -> str:
         if self.cache_key_field in kwargs:
             base_key = str(kwargs[self.cache_key_field])
         else:
@@ -137,7 +140,9 @@ class QwenDirectPromptInference:
         b64 = base64.b64encode(buffer.read()).decode("utf-8")
         return f"data:audio/wav;base64,{b64}"
 
-    def _build_zero_shot_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:
+    def _build_zero_shot_messages(
+        self, audio_path: Union[str, Path]
+    ) -> list[dict[str, Any]]:
         data_uri = self._path_to_data_uri(audio_path)
         content = [
             {"type": "audio_url", "audio_url": {"url": data_uri}},
@@ -145,32 +150,40 @@ class QwenDirectPromptInference:
         ]
         return [{"role": "user", "content": content}]
 
-    def _build_few_shot_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:
+    def _build_few_shot_messages(
+        self, audio_path: Union[str, Path]
+    ) -> list[dict[str, Any]]:
         if self.shared_few_shots is None:
             raise RuntimeError("shared_few_shots is not initialized")
 
         messages: list[dict[str, Any]] = []
         for shot in self.shared_few_shots:
             shot_uri = self._path_to_data_uri(shot.audio_path)
-            messages.append({
+            messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "audio_url", "audio_url": {"url": shot_uri}},
+                        {"type": "text", "text": self.user_prompt},
+                    ],
+                }
+            )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": FewShotSupportBuilder.dumps_answer(shot.answer),
+                }
+            )
+        query_uri = self._path_to_data_uri(audio_path)
+        messages.append(
+            {
                 "role": "user",
                 "content": [
-                    {"type": "audio_url", "audio_url": {"url": shot_uri}},
+                    {"type": "audio_url", "audio_url": {"url": query_uri}},
                     {"type": "text", "text": self.user_prompt},
                 ],
-            })
-            messages.append({
-                "role": "assistant",
-                "content": FewShotSupportBuilder.dumps_answer(shot.answer),
-            })
-        query_uri = self._path_to_data_uri(audio_path)
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "audio_url", "audio_url": {"url": query_uri}},
-                {"type": "text", "text": self.user_prompt},
-            ],
-        })
+            }
+        )
         return messages
 
     def _build_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:

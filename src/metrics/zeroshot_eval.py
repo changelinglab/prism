@@ -9,17 +9,17 @@ Supports:
 - geolocation (lat, lon in decimal degrees): vaanigeo
 
 Usage:
-    python -m src.metrics.zeroshot_evals \\
-        --dataset vaanigeo \\
+    python -m src.metrics.zeroshot_eval \
+        --dataset vaanigeo \
         --run_dir exp/runs/vaani/20251230_201815
 
-    python -m src.metrics.zeroshot_evals \\
-        --dataset cmul2arcticl1 \\
+    python -m src.metrics.zeroshot_eval \
+        --dataset cmul2arcticl1 \
         --predictions "exp/runs/dp_gemini_l1cls/prediction.*.jsonl"
 
-    python -m src.metrics.zeroshot_evals \\
-        --dataset speechocean \\
-        --run_dir exp/runs/speechocean/20251231_012345 \\
+    python -m src.metrics.zeroshot_eval \
+        --dataset speechocean \
+        --run_dir exp/runs/speechocean/20251231_012345 \
         --output exp/eval_results/speechocean_report
 """
 
@@ -258,7 +258,7 @@ def extract_classification(
             continue
 
         # Direct-prompt (Qwen/Gemini) may store scalar under "result"; transcript uses spec.pred_key
-        class_id = pred.get(spec.pred_key) or pred.get("result")
+        class_id = pred.get(spec.pred_key) or pred.get("result") or pred.get("class_id")
         if class_id is None or not isinstance(class_id, (int, float, str)):
             invalid += 1
             continue
@@ -307,7 +307,7 @@ def extract_regression(
             continue
 
         # Direct-prompt (Qwen/Gemini) may store scalar under "result"; transcript uses spec.pred_key
-        score = pred.get(spec.pred_key) or pred.get("result")
+        score = pred.get(spec.pred_key) or pred.get("result") or pred.get("score")
         if score is None or not isinstance(score, (int, float, str)):
             invalid += 1
             continue
@@ -360,7 +360,7 @@ def extract_geolocation(
             continue
 
         try:
-            pred = json.loads(pred.get(spec.pred_key, "{}"))
+            pred = json.loads(pred[spec.pred_key])
         except Exception:
             pred = pred
         lat_deg = pred.get("lat")
