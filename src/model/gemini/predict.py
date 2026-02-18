@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from src.model.gemini.client import GeminiClient
+from src.model.gemini.fewshot_support import FewShotSample, FewShotSupportBuilder
 
 
 class DirectPromptInference:
@@ -43,6 +44,7 @@ class DirectPromptInference:
         self,
         client_config: dict[str, Any],
         prompt_config: dict[str, Any],
+        prompting: Optional[dict[str, Any]] = None,
         device: Optional[str] = None,  # Ignored for API-based model
         cache_path: Optional[Union[str, Path]] = None,
         resume: bool = True,
@@ -62,6 +64,14 @@ class DirectPromptInference:
             prompt_config: Configuration for prompt handling. Expected keys:
                 - system_prompt (str, optional): System instruction for the model
                 - user_prompt (str, optional): Plain user prompt string
+                - few_shot (dict, optional): Few-shot policy settings:
+                    - policy (str): one of all_class_coverage, k_class_coverage, k_sample
+                    - k (int|None): sample count used by k_* policies
+            prompting: Runtime prompting controls:
+                - mode (str): zero_shot (default) or few_shot
+                - seed (int): deterministic seed for few-shot support sampling
+                - support_data_cfg (dict/object): datamodule config or instance used
+                  to build shared supports in few-shot mode (required for mode=few_shot)
             device: Ignored parameter for API compatibility with distributed_inference.
             cache_path: Optional path to a JSONL cache file for per-sample checkpointing.
                 If set, each successful prediction is appended as {"key": ..., "pred": ...}.
@@ -77,6 +87,15 @@ class DirectPromptInference:
         # Store prompt configuration
         self.system_prompt = prompt_config.get("system_prompt", "")
         self.user_prompt = prompt_config.get("user_prompt", "")
+        self.few_shot_cfg = prompt_config.get("few_shot", {})
+        self.response_schema = client_config.get("response_schema")
+
+        # Few-shot runtime controls
+        prompting = prompting or {}
+        self.prompting_mode = str(prompting.get("mode", "zero_shot")).strip().lower()
+        self.prompting_seed = int(prompting.get("seed", 42))
+        self.support_data_cfg = prompting.get("support_data_cfg")
+        self.shared_few_shots: Optional[list[FewShotSample]] = None
 
         # Resume / caching options
         self.cache_path = Path(cache_path) if cache_path else None
@@ -127,9 +146,56 @@ class DirectPromptInference:
 
     def _get_cache_key(self, audio_path: Union[str, Path], kwargs: dict[str, Any]) -> str:
         """Determine cache key from kwargs or audio_path."""
+        base_key: str
         if self.cache_key_field in kwargs:
-            return str(kwargs[self.cache_key_field])
-        return str(audio_path)
+            base_key = str(kwargs[self.cache_key_field])
+        else:
+            base_key = str(audio_path)
+
+        signature = self.prompting_mode
+        if self.prompting_mode == "few_shot":
+            policy = str((self.few_shot_cfg or {}).get("policy", "")).strip().lower()
+            k = (self.few_shot_cfg or {}).get("k")
+            k_str = str(k) if k is not None else "none"
+            signature = (
+                f"{self.prompting_mode}"
+                f"|policy={policy or 'none'}"
+                f"|k={k_str}"
+                f"|seed={self.prompting_seed}"
+            )
+
+        return f"{signature}::{base_key}"
+
+    def _build_zero_shot_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:
+        """Build single-turn zero-shot messages."""
+        return [{"role": "user", "text": self.user_prompt, "files": [audio_path]}]
+
+    def _build_few_shot_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:
+        """Build multi-turn few-shot messages with shared supports."""
+        if self.shared_few_shots is None:
+            raise RuntimeError("shared_few_shots is not initialized")
+
+        messages: list[dict[str, Any]] = []
+        for shot in self.shared_few_shots:
+            messages.append(
+                {"role": "user", "text": self.user_prompt, "files": [shot.audio_path]}
+            )
+            messages.append(
+                {
+                    "role": "model",
+                    "text": FewShotSupportBuilder.dumps_answer(shot.answer),
+                }
+            )
+        messages.append({"role": "user", "text": self.user_prompt, "files": [audio_path]})
+        return messages
+
+    def _build_messages(self, audio_path: Union[str, Path]) -> list[dict[str, Any]]:
+        """Dispatch prompt strategy by mode."""
+        if self.prompting_mode == "zero_shot":
+            return self._build_zero_shot_messages(audio_path)
+        if self.prompting_mode == "few_shot":
+            return self._build_few_shot_messages(audio_path)
+        raise ValueError(f"Unsupported prompting.mode: {self.prompting_mode}")
 
     def __call__(self, audio_path: Union[str, Path], **kwargs: Any) -> Any:
         """
@@ -156,12 +222,21 @@ class DirectPromptInference:
         if self.cache_path and self.resume and cache_key in self._cache:
             return self._cache[cache_key]
 
+        # Build shared supports once lazily at first cache miss.
+        if self.prompting_mode == "few_shot" and self.shared_few_shots is None:
+            self.shared_few_shots = FewShotSupportBuilder.build(
+                support_data_cfg=self.support_data_cfg,
+                few_shot_cfg=self.few_shot_cfg,
+                seed=self.prompting_seed,
+                response_schema=self.response_schema,
+            )
+
         # Call Gemini API
         try:
-            raw_response = self.client.generate(
-                prompt=self.user_prompt,
+            messages = self._build_messages(audio_path)
+            raw_response = self.client.generate_from_messages(
+                messages=messages,
                 system_prompt=self.system_prompt if self.system_prompt else None,
-                files=audio_path,
             )
         except Exception as e:
             # Log error to errors.jsonl, return None for pred

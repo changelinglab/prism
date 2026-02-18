@@ -27,6 +27,9 @@ prompt_config:
     - Do NOT include any explanation, markdown, or extra text.
     - If uncertain, give your best estimate within the valid range.
   user_prompt: "Assess dysarthria severity using the TOM-based 4-class mapping: 0=Control (healthy), 1=Mild, 2=Mild-moderate or Moderate, 3=Moderate-severe or Severe. Output only the integer score (0-3)."
+  few_shot:
+    policy: all_class_coverage
+    k: null
 
 client_config:
   response_schema:

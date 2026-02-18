@@ -32,6 +32,9 @@ prompt_config:
     - Do NOT include any explanation, markdown, or extra text.
     - If uncertain, give your best estimate within the valid range.
   user_prompt: "Predict the intelligibility category using the 0–4 mapping: 0=Control (healthy), 1=High (76–100%), 2=Mid (51–75%), 3=Low (26–50%), 4=Very low (0–25%). Output only the integer score (0-4)."
+  few_shot:
+    policy: all_class_coverage
+    k: null
 
 client_config:
   response_schema:
