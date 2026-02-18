@@ -257,7 +257,8 @@ def extract_classification(
             invalid += 1
             continue
 
-        class_id = pred.get(spec.pred_key)
+        # Direct-prompt (Qwen/Gemini) may store scalar under "result"; transcript uses spec.pred_key
+        class_id = pred.get(spec.pred_key) or pred.get("result")
         if class_id is None or not isinstance(class_id, (int, float, str)):
             invalid += 1
             continue
@@ -305,7 +306,8 @@ def extract_regression(
             invalid += 1
             continue
 
-        score = pred.get(spec.pred_key)
+        # Direct-prompt (Qwen/Gemini) may store scalar under "result"; transcript uses spec.pred_key
+        score = pred.get(spec.pred_key) or pred.get("result")
         if score is None or not isinstance(score, (int, float, str)):
             invalid += 1
             continue

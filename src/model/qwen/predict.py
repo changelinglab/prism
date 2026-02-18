@@ -222,9 +222,14 @@ class QwenDirectPromptInference:
     ) -> Optional[dict[str, Any]]:
         try:
             parsed = json.loads(raw_response)
-            if not isinstance(parsed, dict):
-                raise ValueError(f"Expected dict, got {type(parsed).__name__}")
-            return parsed
+            if isinstance(parsed, dict):
+                return parsed
+            # Model sometimes returns a bare scalar (e.g. "5" for classification/regression)
+            if isinstance(parsed, (int, float)):
+                return {"result": parsed}
+            if isinstance(parsed, str):
+                return {"result": parsed}
+            raise ValueError(f"Expected dict or scalar, got {type(parsed).__name__}")
         except (json.JSONDecodeError, ValueError) as e:
             self._log_error(
                 cache_key,
