@@ -62,6 +62,7 @@ summary_log="${exp_dir}/${run_name}.summary.log"
 # Cluster configurations
 declare -A cluster_configs=(
     ["babel"]="scripts/babel.batch"
+    ["vllm"]="scripts/vllm_dai.batch"
 )
 
 # Model configurations: base_model|hf_repo
