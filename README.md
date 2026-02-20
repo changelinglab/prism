@@ -32,6 +32,8 @@ cd prism
 
 This codebase pulls datasets from the huggingface collection [https://huggingface.co/collections/changelinglab/prism](https://huggingface.co/collections/changelinglab/prism).
 
+> **Note**: Intrinsic evaluation datasets (e.g., DoReCo, TIMIT) are not yet uploaded to HuggingFace. These will be made available in a future release.
+
 
 ## How to run
 
@@ -49,10 +51,10 @@ Train model with chosen experiment configuration from [configs/experiment/](conf
 
 ```bash
 # For probing experiments using hidden representations
-python src/main.py experiment=probing/geolocation_vaani_powsm
+python src/main.py experiment=probing/lid_fleurs_powsm
 
 # For inference experiments
-python src/main.py experiment=inference/vaani_powsmpr
+python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
 ```
 
 You can override any parameter from command line like this

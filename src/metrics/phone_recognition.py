@@ -1,40 +1,33 @@
 """Evaluate phone recognition output using panphon feature-based metrics.
 
+The --prediction_file argument accepts a JSON file, a JSONL file, or a directory
+containing JSONL files (produced by the distributed inference pipeline). When a
+directory is provided, all *.jsonl files inside it are merged automatically,
+removing the need for the intermediate jsonl2json conversion step.
+
 Usage:
+    # Load from a directory of JSONL files (no jsonl2json step needed)
+    python -m src.metrics.phone_recognition \
+        --prediction_file exp/runs/inf_doreco_powsm_ctc/8jobARR/ \
+        --evaluation_name powsmctc \
+        --output_file exp/runs/inf_doreco_powsm_ctc/8jobARR/inventory_results.csv \
+        --gt_field target \
+        --key_field utt_id \
+        --language_field lang_sym
+
+    # Load from a single JSON file
     python -m src.metrics.phone_recognition \
         --prediction_file exp/runs/inf_doreco_xlsr53/20251220_085642/transcription.withlang.json \
         --gt_field target \
         --key_field utt_id \
         --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name powsmctc \
-        --prediction_file exp/runs/inf_doreco_powsm_ctc/8jobARR/transcription.json \
-        --output_file exp/runs/inf_doreco_powsm_ctc/8jobARR/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name qweni \
-        --prediction_file exp/runs/inf_doreco_qweni/1jobArr/transcription.json \
-        --output_file exp/runs/inf_doreco_qweni/1jobArr/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name gemini \
-        --prediction_file exp/runs/inf_tusom2021_gemini/20251224_142557/transcription.withlang.json \
-        --output_file exp/runs/inf_tusom2021_gemini/20251224_142557/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    # PR results are in the output_file, inventory on terminal
-    python -m src.metrics.phone_recognition --evaluation_name qweni \
-        --prediction_file  exp/runs/inf_tusom2021_qweni/1jobArr/transcription.json \
-        --output_file exp/runs/inf_tusom2021_qweni/1jobArr/inventory_results.csv \
+
+    # Load from a single JSONL file
+    python -m src.metrics.phone_recognition \
+        --prediction_file exp/runs/inf_doreco_powsm_ctc/8jobARR/transcription.0.jsonl \
         --gt_field target \
         --key_field utt_id
-        
+
     python -m src.metrics.phone_recognition \
         --prediction_file exp/runs/inf_doreco_lv60/20251220_085643/transcription.withlang.json \
         --gt_field target \
@@ -448,17 +441,54 @@ class PhoneRecognitionEvaluator:
             )
 
 
+def _load_predictions_raw(pred_file: str) -> Dict[str, Any]:
+    """Load prediction data from a JSON file, a JSONL file, or a directory of JSONL files.
+
+    Supports three input formats:
+      - A `.json` file: loaded directly as a single JSON object.
+      - A `.jsonl` file: each line is a JSON object whose keys are merged.
+      - A directory: all `*.jsonl` files in the directory are read and merged.
+
+    Returns a flat dict: {key: {"pred": ..., "passthrough": ...}, ...}
+    """
+    from pathlib import Path
+
+    path = Path(pred_file)
+
+    if path.is_dir():
+        jsonl_files = sorted(path.glob("*.jsonl"))
+        if not jsonl_files:
+            raise FileNotFoundError(f"No .jsonl files found in directory: {pred_file}")
+        data: Dict[str, Any] = {}
+        for p in jsonl_files:
+            for line in p.open():
+                if line.strip():
+                    data.update(json.loads(line))
+        return data
+
+    if path.suffix == ".jsonl":
+        data = {}
+        with open(pred_file, "r") as f:
+            for line in f:
+                if line.strip():
+                    data.update(json.loads(line))
+        return data
+
+    # Default: treat as a single JSON file
+    with open(pred_file, "r") as f:
+        return json.load(f)
+
+
 def _load_predictions(
     pred_file: str, language_field: str = None
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
-    """
-    Loads prediction file from JSON format.
+    """Load predictions from a JSON file, JSONL file, or directory of JSONL files.
+
     The returned structure is:
     {'language': { utt_id: {"prediction": str, "transcription": str}, ... }}
     If language_field is None, 'language' is set to the string '"combined"'.
     """
-    with open(pred_file, "r") as f:
-        data = json.load(f)
+    data = _load_predictions_raw(pred_file)
 
     all_languages = set()
     if language_field is not None:
@@ -498,7 +528,9 @@ def _load_predictions(
 def add_args(parser: argparse.ArgumentParser) -> None:
     """Add phone recognition evaluation arguments to an argparse parser."""
     parser.add_argument(
-        "--prediction_file", required=True, help="Path to prediction JSON file"
+        "--prediction_file",
+        required=True,
+        help="Path to prediction JSON file, JSONL file, or directory of JSONL files",
     )
     parser.add_argument(
         "--gt_field",

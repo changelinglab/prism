@@ -7,7 +7,7 @@ This guide explains how to run inference with pre-trained phone recognition mode
 Run inference using an existing experiment config:
 
 ```bash
-python src/main.py experiment=inference/vaani_powsmpr
+python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
 ```
 
 ## Components Required
@@ -115,14 +115,14 @@ num_workers: 4
 
 ## Example: Running PoWSM Inference
 
-See `configs/experiment/inference/vaani_powsmpr.yaml` for a complete example:
+See `configs/experiment/inference/transcribe_powsm.yaml` for a complete example:
 
 ```bash
 # Basic usage
-python src/main.py experiment=inference/vaani_powsmpr
+python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
 
 # With custom parameters
-python src/main.py experiment=inference/vaani_powsmpr \
+python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm \
     inference.num_workers=4 \
     inference.out_file=/path/to/output.json
 ```
