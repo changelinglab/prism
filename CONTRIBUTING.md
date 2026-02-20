@@ -54,12 +54,12 @@ The directory structure of this project looks like this:
 ### Basic workflow
 
 1. Write your PyTorch Lightning model module (see [recipe/geolocation/model_module.py](src/recipe/geolocation/model_module.py) for example)
-1. Write your PyTorch Lightning datamodule (see [data/vaani/geolocation.py](src/data/vaani/geolocation.py) for example)
-1. Write your experiment config, containing paths to model and datamodule (see [configs/experiment/probing/geolocation_vaani_powsm.yaml](configs/experiment/probing/geolocation_vaani_powsm.yaml) for example)
+1. Write your PyTorch Lightning datamodule (see [data/fleurs/common_datamodule.py](src/data/fleurs/common_datamodule.py) for example)
+1. Write your experiment config, containing paths to model and datamodule (see [configs/experiment/probing/lid_fleurs_powsm.yaml](configs/experiment/probing/lid_fleurs_powsm.yaml) for example)
 1. Run training with chosen experiment config:
    ```bash
    # For probing experiments (use task_dataset_model naming)
-   python src/main.py experiment=probing/geolocation_vaani_powsm
+   python src/main.py experiment=probing/lid_fleurs_powsm
    ```
 
 ### Experiment design
@@ -111,7 +111,7 @@ This allows you to easily iterate over new models! Every time you create a new o
 Switch between models and datamodules with command line arguments:
 
 ```bash
-python src/main.py model=powsm_geolocation data=vaani_geolocation
+python src/main.py model=classification data=fleurs
 ```
 
 Example pipeline managing the instantiation logic: [src/main.py](src/main.py).
@@ -132,8 +132,10 @@ It determines how config is composed when simply executing command `python src/m
 # all configs can be overridden from command line, e.g. `python src/main.py debug=default)
 defaults:
   - _self_
-  - data: vaani_geolocation
-  - model: powsm_geolocation
+  - model: ??? # must be defined in experiment config
+  - model/net: ???
+  - data: ???
+  - optional data/tokenizer: null # some exp do not need a tokenizer
   - trainer: default
   - paths: default
   - logger: csv
@@ -160,10 +162,13 @@ train: True # set False to skip model training
 # evaluate on test set, using best model weights achieved during training
 # lightning chooses best weights based on the metric specified in checkpoint callback
 test: True
+# prediction stage runs if 'predict' is True or 'pred_file' is not None
+predict: False # run prediction on new/unseen data
+pred_file: null # path to write predictions to
 
+run_folder: ${now:%Y%m%d}_${now:%H%M%S}
 # useful to resume training from a checkpoint path
 ckpt_path: null
-
 seed: 42 # pytorch, numpy and python.random
 ```
 
@@ -187,11 +192,12 @@ Experiment configs are organized in subdirectories:
 # @package _global_
 
 # to execute this experiment run:
-# python src/main.py experiment=probing/geolocation_vaani_powsm
+# python src/main.py experiment=probing/lid_fleurs_powsm
 
 defaults:
-  - override /data: vaani_geolocation
-  - override /model: geolocation
+  - override /data: fleurs
+  - override /model: classification
+  - override /model/head: attnmlp
   - override /model/net: powsm
   - override /trainer: gpu
   - override /callbacks: default
@@ -200,19 +206,35 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-task_name: "geolocation_vaani_powsm"
-tags: ["vaani", "powsm", "geolocation"]
+task_name: "lid_fleurs_powsm"
+tags: ["fleurs", "powsm", "lid", "classification"]
 
 seed: 42
 
 trainer:
-  min_epochs: 10
-  max_epochs: 10
+  min_epochs: 5
+  max_epochs: 12
   gradient_clip_val: 1.0
+  val_check_interval: 0.25  # validate 4 times per epoch
 
 model:
+  head:
+    task_type: "classification"
+  freeze_encoder: true
   optimizer:
     lr: 0.0002
+  scheduler:
+    total_iters: 200
+
+callbacks:
+  model_checkpoint:
+    monitor: "val/f1"
+    mode: "max"
+    save_top_k: 1
+  early_stopping:
+    monitor: "val/f1"
+    patience: 5
+    mode: "max"
 
 data:
   batch_size: 48
@@ -220,12 +242,13 @@ data:
 logger:
   wandb:
     tags: ${tags}
-    group: "geolocation_vaani_powsm"
-  aim:
-    experiment: "geolocation_vaani_powsm"
+    group: ${task_name}
+    name: ${task_name}
 ```
 
-> **Note**: Probing experiment configs follow the naming convention `task_dataset_model.yaml` (e.g., `geolocation_vaani_powsm.yaml`) and tags are structured as `[dataset, model, task]`.
+> **Note**: Probing experiment configs follow the naming convention `task_dataset_model.yaml` (e.g., `lid_fleurs_powsm.yaml`) and tags are structured as `[dataset, model, task]`.
+
+> **Note**: Callbacks such as `model_checkpoint` and `early_stopping` monitor training/validation metrics and are only active during training mode (`train: True`). They are not used during inference.
 
 </details>
 

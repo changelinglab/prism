@@ -85,10 +85,10 @@ python src/main.py logger=wandb
 
 ```bash
 # For probing experiments (task_dataset_model format)
-python src/main.py experiment=probing/geolocation_vaani_powsm
+python src/main.py experiment=probing/lid_fleurs_powsm
 
 # For inference experiments
-python src/main.py experiment=inference/vaani_powsmpr
+python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
 ```
 
 > **Note**: Experiment configs are organized in [configs/experiment/](../configs/experiment/) with subdirectories:
@@ -106,6 +106,8 @@ python src/main.py callbacks=default
 ```
 
 > **Note**: Callbacks can be used for things such as as model checkpointing, early stopping and [many more](https://pytorch-lightning.readthedocs.io/en/latest/extensions/callbacks.html#built-in-callbacks).
+
+> **Note**: Callbacks that monitor metrics (e.g., `model_checkpoint`, `early_stopping`) are only active during training mode (`train: True`). They are not used during inference.
 
 > **Note**: Callbacks configs are placed in [configs/callbacks/](../configs/callbacks/).
 
@@ -207,7 +209,7 @@ python src/main.py -m data.batch_size=32,64,128 model.lr=0.001,0.0005
 ```bash
 # this will run hyperparameter search defined in `configs/hparams_search/mnist_optuna.yaml`
 # over chosen experiment config
-python src/main.py -m hparams_search=mnist_optuna experiment=probing/geolocation_vaani_powsm
+python src/main.py -m hparams_search=mnist_optuna experiment=probing/lid_fleurs_powsm
 ```
 
 > **Note**: Using [Optuna Sweeper](https://hydra.cc/docs/next/plugins/optuna_sweeper) doesn't require you to add any boilerplate to your code, everything is defined in a [single config file](../configs/hparams_search/mnist_optuna.yaml).
@@ -295,12 +297,12 @@ pytest -k "not slow"
 Each experiment should be tagged in order to easily filter them across files or in logger UI:
 
 ```bash
-python src/main.py tags=["vaani","powsm","geolocation"]
+python src/main.py tags=["fleurs","powsm","lid"]
 ```
 
 > **Note**: Tags are structured as `[dataset, model, task]` in probing experiments for consistency.
 
-> **Note**: You might need to escape the bracket characters in your shell with `python src/main.py tags=\["vaani","powsm","geolocation"\]`.
+> **Note**: You might need to escape the bracket characters in your shell with `python src/main.py tags=\["fleurs","powsm","lid"\]`.
 
 If no tags are provided, you will be asked to input them from command line:
 
