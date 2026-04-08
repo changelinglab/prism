@@ -23,17 +23,27 @@ PRiSM datasets are organized in the Hugging Face collection: [changelinglab/pris
 
 The benchmark currently uses the following dataset sources:
 
-| Dataset config | Source | Task |
+| Dataset config | Source (`-pr` repos) | Task |
 | --- | --- | --- |
-| `fleurs` | `shikhar7ssu/fleurs24-lid` | Language identification |
-| `cmul2arcticl1` | `y00njaekim/cmul2arctic-l1cls` | L1 classification |
-| `edacc` | `shikhar7ssu/edacc-l1cls` | L1 classification |
-| `easycall` | `speech31/easycall-dysarthria` | Dysarthria severity classification |
-| `ultrasuite_child` | `kgrosero14/ultrasuite-benchmark` | Atypical vs typical speech classification |
-| `vaanigeo` | `shikhar7ssu/vaani-hi-geo` | Geolocation regression/classification |
-| `kl_speechocean` | `KoelLabs/SpeechOcean` | Phone-level assessment/inference |
+| `fleurs` | `shikhar7ssu/fleurs24-lid-pr` | LID (language identification) |
+| `cmul2arcticl1` | `y00njaekim/cmul2arctic-l1cls-pr` | L1 classification (native language ID) |
+| `edacc` | `shikhar7ssu/edacc-l1cls-pr` | L1 classification (accent-cluster ID) |
+| `easycall` | `speech31/easycall-dysarthria-pr` | Atypical speech severity scoring |
+| `ultrasuite_child` | `kgrosero14/ultrasuite-benchmark-pr` | Atypical vs typical child speech classification |
+| `vaanigeo` | `shikhar7ssu/vaani-hi-geo-pr` | Speech geolocation |
+| `kl_speechocean` | `KoelLabs/SpeechOcean-pr` | L2 accent/pronunciation assessment |
 
 PRiSM evaluation configs also include Kaldi-style test sets (`doreco`, `gmuaccent`, `l2arctic_perceived`, `timit`, `tusom2021`, `voxangeles`) via `configs/data/powsm_evalset_index.yaml`.
+
+To set up evalset-index data, download the corresponding `*-pr` dataset repos from the collection into one root directory, then point `data.data_dir` to that root when running inference/evaluation. The expected layout under that root must match `configs/data/powsm_evalset_index.yaml` (each dataset directory contains `wav.scp`, `text.good`, and language files).
+
+```bash
+# download one evalset dataset repo from the collection (repeat for other *-pr repos)
+huggingface-cli download <owner>/<dataset-name-ending-with--pr> --repo-type dataset --local-dir /path/to/prism-evalsets
+
+# run with evalset index (override data_dir from config)
+python src/main.py experiment=inference/transcribe_powsm data=powsmeval data.data_dir=/path/to/prism-evalsets
+```
 
 ## 🚀 Quickstart
 
