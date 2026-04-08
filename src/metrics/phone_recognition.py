@@ -1,42 +1,28 @@
 """Evaluate phone recognition output using panphon feature-based metrics.
 
+The --prediction_file argument accepts either:
+  1. A JSON file (e.g. transcription.json) loaded directly.
+  2. A glob pattern matching one or more JSONL files (e.g. "exp/runs/8jobARR/*.jsonl").
+
 Usage:
+    # Load from JSONL files via glob pattern
     python -m src.metrics.phone_recognition \
-        --prediction_file exp/runs/inf_doreco_xlsr53/20251220_085642/transcription.withlang.json \
+        --prediction_file "exp/runs/inf_voxangeles_powsm_ctc/8jobARR/*.jsonl" \
+        --evaluation_name powsmctc \
+        --output_file exp/runs/inf_voxangeles_powsm_ctc/8jobARR/inventory_results.csv \
         --gt_field target \
         --key_field utt_id \
         --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name powsmctc \
-        --prediction_file exp/runs/inf_doreco_powsm_ctc/8jobARR/transcription.json \
-        --output_file exp/runs/inf_doreco_powsm_ctc/8jobARR/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name qweni \
-        --prediction_file exp/runs/inf_doreco_qweni/1jobArr/transcription.json \
-        --output_file exp/runs/inf_doreco_qweni/1jobArr/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    python -m src.metrics.phone_recognition --evaluation_name gemini \
-        --prediction_file exp/runs/inf_tusom2021_gemini/20251224_142557/transcription.withlang.json \
-        --output_file exp/runs/inf_tusom2021_gemini/20251224_142557/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id \
-        --language_field lang_sym
-    
-    # PR results are in the output_file, inventory on terminal
-    python -m src.metrics.phone_recognition --evaluation_name qweni \
-        --prediction_file  exp/runs/inf_tusom2021_qweni/1jobArr/transcription.json \
-        --output_file exp/runs/inf_tusom2021_qweni/1jobArr/inventory_results.csv \
-        --gt_field target \
-        --key_field utt_id
-        
+
+    # Load from a single JSON file
     python -m src.metrics.phone_recognition \
-        --prediction_file exp/runs/inf_doreco_lv60/20251220_085643/transcription.withlang.json \
+        --prediction_file exp/runs/inf_voxangeles_xlsr53/20251220_085642/transcription.json \
+        --gt_field target \
+        --key_field utt_id \
+        --language_field lang_sym
+
+    python -m src.metrics.phone_recognition \
+        --prediction_file exp/runs/inf_voxangeles_lv60/20251220_085643/transcription.json \
         --gt_field target \
         --key_field utt_id \
         --language_field lang_sym \
@@ -448,17 +434,44 @@ class PhoneRecognitionEvaluator:
             )
 
 
+def _load_predictions_raw(pred_file: str) -> Dict[str, Any]:
+    """Load prediction data from a JSON file or from JSONL files matched by a glob pattern.
+
+    Supports two input modes:
+      1. A `.json` file path: loaded directly as a single JSON object.
+      2. A glob pattern: all matching files are read line-by-line as JSONL and merged.
+
+    Returns a flat dict: {key: {"pred": ..., "passthrough": ...}, ...}
+    """
+    import glob as glob_module
+
+    if pred_file.endswith(".json"):
+        with open(pred_file, "r") as f:
+            return json.load(f)
+
+    # Treat as a glob pattern for JSONL files
+    jsonl_files = sorted(glob_module.glob(pred_file))
+    if not jsonl_files:
+        raise FileNotFoundError(f"No files matched the pattern: {pred_file}")
+    data: Dict[str, Any] = {}
+    for p in jsonl_files:
+        with open(p, "r") as f:
+            for line in f:
+                if line.strip():
+                    data.update(json.loads(line))
+    return data
+
+
 def _load_predictions(
     pred_file: str, language_field: str = None
 ) -> Dict[str, Dict[str, Dict[str, str]]]:
-    """
-    Loads prediction file from JSON format.
+    """Load predictions from a JSON file or JSONL files matched by a glob pattern.
+
     The returned structure is:
     {'language': { utt_id: {"prediction": str, "transcription": str}, ... }}
     If language_field is None, 'language' is set to the string '"combined"'.
     """
-    with open(pred_file, "r") as f:
-        data = json.load(f)
+    data = _load_predictions_raw(pred_file)
 
     all_languages = set()
     if language_field is not None:
@@ -498,7 +511,9 @@ def _load_predictions(
 def add_args(parser: argparse.ArgumentParser) -> None:
     """Add phone recognition evaluation arguments to an argparse parser."""
     parser.add_argument(
-        "--prediction_file", required=True, help="Path to prediction JSON file"
+        "--prediction_file",
+        required=True,
+        help="Path to prediction JSON file or glob pattern for JSONL files (e.g. 'exp/runs/*.jsonl')",
     )
     parser.add_argument(
         "--gt_field",

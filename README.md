@@ -51,10 +51,10 @@ Train model with chosen experiment configuration from [configs/experiment/](conf
 
 ```bash
 # For probing experiments using hidden representations
-python src/main.py experiment=probing/geolocation_vaani_powsm
+python src/main.py experiment=probing/lid_fleurs_powsm
 
 # For inference experiments
-python src/main.py experiment=inference/vaani_powsmpr
+python src/main.py experiment=inference/transcribe_powsm data=doreco data.dataset_name=voxangeles task_name=inf_voxangeles_powsm
 ```
 
 You can override any parameter from command line like this
