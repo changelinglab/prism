@@ -1,3 +1,5 @@
+**🎉 Paper accepted at ACL Main 2026!** [arXiv: 2601.14046](https://arxiv.org/abs/2601.14046)
+
 ______________________________________________________________________
 
 <div align="center">
