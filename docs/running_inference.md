@@ -7,7 +7,7 @@ This guide explains how to run inference with pre-trained phone recognition mode
 Run inference using an existing experiment config:
 
 ```bash
-python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
+python src/main.py experiment=inference/transcribe_powsm data=doreco data.dataset_name=voxangeles task_name=inf_voxangeles_powsm
 ```
 
 ## Components Required
@@ -119,10 +119,10 @@ See `configs/experiment/inference/transcribe_powsm.yaml` for a complete example:
 
 ```bash
 # Basic usage
-python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
+python src/main.py experiment=inference/transcribe_powsm data=doreco data.dataset_name=voxangeles task_name=inf_voxangeles_powsm
 
 # With custom parameters
-python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm \
+python src/main.py experiment=inference/transcribe_powsm data=doreco data.dataset_name=voxangeles task_name=inf_voxangeles_powsm \
     inference.num_workers=4 \
     inference.out_file=/path/to/output.json
 ```

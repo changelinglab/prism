@@ -160,21 +160,8 @@ def test_load_predictions_raw_json(tmp_path):
     assert loaded["0"]["pred"][0]["processed_transcript"] == "ɑb"
 
 
-def test_load_predictions_raw_jsonl(tmp_path):
-    """Test loading predictions from a single JSONL file."""
-    jsonl_file = tmp_path / "transcription.0.jsonl"
-    with open(jsonl_file, "w") as f:
-        f.write(json.dumps(_sample_record(0, "ɑb", "ɑb", "utt1")) + "\n")
-        f.write(json.dumps(_sample_record(1, "kæt", "kæt", "utt2")) + "\n")
-
-    loaded = _load_predictions_raw(str(jsonl_file))
-    assert len(loaded) == 2
-    assert "0" in loaded
-    assert "1" in loaded
-
-
-def test_load_predictions_raw_directory(tmp_path):
-    """Test loading predictions from a directory of JSONL files."""
+def test_load_predictions_raw_glob_pattern(tmp_path):
+    """Test loading predictions from JSONL files matched by a glob pattern."""
     # Simulate two SLURM tasks producing separate JSONL files
     jsonl_file_0 = tmp_path / "transcription.0.jsonl"
     with open(jsonl_file_0, "w") as f:
@@ -185,20 +172,22 @@ def test_load_predictions_raw_directory(tmp_path):
     with open(jsonl_file_1, "w") as f:
         f.write(json.dumps(_sample_record(2, "dɔɡ", "dɔɡ", "utt3")) + "\n")
 
-    loaded = _load_predictions_raw(str(tmp_path))
+    pattern = str(tmp_path / "*.jsonl")
+    loaded = _load_predictions_raw(pattern)
     assert len(loaded) == 3
     assert "0" in loaded
     assert "1" in loaded
     assert "2" in loaded
 
 
-def test_load_predictions_raw_directory_no_jsonl(tmp_path):
-    """Test that loading from an empty directory raises FileNotFoundError."""
-    with pytest.raises(FileNotFoundError, match="No .jsonl files found"):
-        _load_predictions_raw(str(tmp_path))
+def test_load_predictions_raw_glob_no_match(tmp_path):
+    """Test that a glob pattern matching no files raises FileNotFoundError."""
+    pattern = str(tmp_path / "*.jsonl")
+    with pytest.raises(FileNotFoundError, match="No files matched the pattern"):
+        _load_predictions_raw(pattern)
 
 
-def test_load_predictions_raw_jsonl_with_blank_lines(tmp_path):
+def test_load_predictions_raw_glob_with_blank_lines(tmp_path):
     """Test that blank lines in JSONL files are skipped."""
     jsonl_file = tmp_path / "transcription.0.jsonl"
     with open(jsonl_file, "w") as f:
@@ -207,6 +196,22 @@ def test_load_predictions_raw_jsonl_with_blank_lines(tmp_path):
         f.write("  \n")  # whitespace-only line
         f.write(json.dumps(_sample_record(1, "kæt", "kæt", "utt2")) + "\n")
 
-    loaded = _load_predictions_raw(str(jsonl_file))
+    pattern = str(tmp_path / "*.jsonl")
+    loaded = _load_predictions_raw(pattern)
     assert len(loaded) == 2
+
+
+def test_load_predictions_raw_single_jsonl_via_glob(tmp_path):
+    """Test loading a single JSONL file via glob pattern."""
+    jsonl_file = tmp_path / "transcription.0.jsonl"
+    with open(jsonl_file, "w") as f:
+        f.write(json.dumps(_sample_record(0, "ɑb", "ɑb", "utt1")) + "\n")
+        f.write(json.dumps(_sample_record(1, "kæt", "kæt", "utt2")) + "\n")
+
+    # Use a specific glob pattern that matches only one file
+    pattern = str(tmp_path / "transcription.0.jsonl")
+    loaded = _load_predictions_raw(pattern)
+    assert len(loaded) == 2
+    assert "0" in loaded
+    assert "1" in loaded
 

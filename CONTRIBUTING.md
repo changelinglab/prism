@@ -248,8 +248,6 @@ logger:
 
 > **Note**: Probing experiment configs follow the naming convention `task_dataset_model.yaml` (e.g., `lid_fleurs_powsm.yaml`) and tags are structured as `[dataset, model, task]`.
 
-> **Note**: Callbacks such as `model_checkpoint` and `early_stopping` monitor training/validation metrics and are only active during training mode (`train: True`). They are not used during inference.
-
 </details>
 
 ## Accessing Datamodule Attributes In Model

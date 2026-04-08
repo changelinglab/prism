@@ -88,7 +88,7 @@ python src/main.py logger=wandb
 python src/main.py experiment=probing/lid_fleurs_powsm
 
 # For inference experiments
-python src/main.py experiment=inference/transcribe_powsm data=doreco task_name=inf_doreco_powsm
+python src/main.py experiment=inference/transcribe_powsm data=doreco data.dataset_name=voxangeles task_name=inf_voxangeles_powsm
 ```
 
 > **Note**: Experiment configs are organized in [configs/experiment/](../configs/experiment/) with subdirectories:
