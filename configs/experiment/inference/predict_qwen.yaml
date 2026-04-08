@@ -1,0 +1,52 @@
+# @package _global_
+
+# Base config for Qwen/vLLM direct-prompt downstream task inference.
+# Uses the same few-shot infrastructure as predict_gemini (FewShotSupportBuilder).
+#
+# Set data and prompt when calling:
+#   python src/main.py experiment=inference/predict_qwen data=cmul2arcticl1 prompt=l1cls_cmul2arctic task_name=dp_qwen_l1cls_cmul2arctic
+#
+# Few-shot: inference.inference_runner.prompting.mode=few_shot
+
+defaults:
+  - /prompt: ???  # REQUIRED: specify prompt config (e.g., l1cls_cmul2arctic)
+  - override /logger: csv
+  - override /model: null
+  - override /model/net: null
+
+task_name: ???
+tags: ["qwen", "inference", "zeroshot"]
+
+seed: 42
+
+train: false
+test: false
+distributed_predict: True
+
+data:
+  predict_splits: ["test"]
+
+inference:
+  num_workers: 1
+  port: 8000  # vLLM server port; override if needed
+  passthrough_keys: ["target", "split", "utt_id", "metadata_idx"]
+  out_file: ${paths.output_dir}/prediction.jsonl
+  limit_samples: null
+
+  inference_runner:
+    _target_: src.model.qwen.predict.QwenDirectPromptInference
+    prompting:
+      mode: zero_shot  # zero_shot | few_shot
+      seed: ${seed}
+      support_data_cfg: ${data}
+    client_config:
+      base_url: "http://localhost:${inference.port}/v1"
+      model_name: "Qwen/Qwen3-Omni-30B-A3B-Instruct"
+      api_key: "EMPTY"
+      temperature: 0.0
+      max_tokens: 256
+    cache_key_field: "metadata_idx"
+    cache_path: "${paths.output_dir}/prediction.cache.jsonl"
+    error_log_path: "${paths.output_dir}/prediction.errors.jsonl"
+    resume: True
+    timeout: 600.0
