@@ -17,6 +17,24 @@
 
 A benchmark for evaluating phonetic capabilities of speech models.
 
+## 📚 Datasets
+
+PRiSM datasets are organized in the Hugging Face collection: [changelinglab/prism](https://huggingface.co/collections/changelinglab/prism).
+
+The benchmark currently uses the following dataset sources:
+
+| Dataset config | Source | Task |
+| --- | --- | --- |
+| `fleurs` | `shikhar7ssu/fleurs24-lid` | Language identification |
+| `cmul2arcticl1` | `y00njaekim/cmul2arctic-l1cls` | L1 classification |
+| `edacc` | `shikhar7ssu/edacc-l1cls` | L1 classification |
+| `easycall` | `speech31/easycall-dysarthria` | Dysarthria severity classification |
+| `ultrasuite_child` | `kgrosero14/ultrasuite-benchmark` | Atypical vs typical speech classification |
+| `vaanigeo` | `shikhar7ssu/vaani-hi-geo` | Geolocation regression/classification |
+| `kl_speechocean` | `KoelLabs/SpeechOcean` | Phone-level assessment/inference |
+
+PRiSM evaluation configs also include Kaldi-style test sets (`doreco`, `gmuaccent`, `l2arctic_perceived`, `timit`, `tusom2021`, `voxangeles`) via `configs/data/powsm_evalset_index.yaml`.
+
 ## 🚀 Quickstart
 
 ```bash
@@ -30,9 +48,6 @@ cd prism
 . ./setup_uv.sh
 
 ```
-
-This codebase pulls datasets from the huggingface collection [https://huggingface.co/collections/changelinglab/prism](https://huggingface.co/collections/changelinglab/prism).
-
 
 ## How to run
 
