@@ -1,7 +1,3 @@
-**🎉 Paper accepted at ACL Main 2026!** [arXiv: 2601.14046](https://arxiv.org/abs/2601.14046)
-
-______________________________________________________________________
-
 <div align="center">
 
 # PRiSM
@@ -13,6 +9,9 @@ ______________________________________________________________________
 <!-- [![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020) -->
 
 </div>
+
+## Announcements
+**April 7, 2026: 🎉 Paper accepted at ACL Main 2026!**
 
 ## Description
 
