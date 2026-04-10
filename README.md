@@ -13,38 +13,6 @@
 ## Announcements
 **April 7, 2026: 🎉 Paper accepted at ACL Main 2026!**
 
-## Description
-
-A benchmark for evaluating phonetic capabilities of speech models.
-
-## 📚 Datasets
-
-PRiSM datasets are organized in the Hugging Face collection: [changelinglab/prism](https://huggingface.co/collections/changelinglab/prism).
-
-The benchmark currently uses the following dataset sources:
-
-| Dataset config | Source (`-pr` repos) | Task |
-| --- | --- | --- |
-| `fleurs` | `changelinglab/fleurs24-lid-pr` | LID (language identification) |
-| `cmul2arcticl1` | `changelinglab/cmul2arctic-l1cls-pr` | L1 classification (native language ID) |
-| `edacc` | `changelinglab/edacc-l1cls-pr` | L1 classification (accent-cluster ID) |
-| `easycall` | `changelinglab/easycall-dysarthria-pr` | Atypical speech severity scoring |
-| `ultrasuite_child` | `changelinglab/ultrasuite-benchmark-pr` | Atypical vs typical child speech classification |
-| `vaanigeo` | `shikhar7ssu/vaani-hi-geo-pr` | Speech geolocation |
-| `kl_speechocean` | `KoelLabs/SpeechOcean-pr` | L2 accent/pronunciation assessment |
-
-PRiSM evaluation configs also include Kaldi-style test sets (`doreco`, `gmuaccent`, `l2arctic_perceived`, `timit`, `tusom2021`, `voxangeles`) via `configs/data/powsm_evalset_index.yaml`.
-
-To set up evalset-index data, download the corresponding `*-pr` dataset repos from the collection into one root directory, then point `data.data_dir` to that root when running inference/evaluation. The expected layout under that root must match `configs/data/powsm_evalset_index.yaml` (each dataset directory contains `wav.scp`, `text.good`, and language files).
-
-```bash
-# download one evalset dataset repo from the collection (repeat for other *-pr repos)
-huggingface-cli download <owner>/<dataset-name-ending-with--pr> --repo-type dataset --local-dir /path/to/prism-evalsets
-
-# run with evalset index (override data_dir from config)
-python src/main.py experiment=inference/transcribe_powsm data=powsmeval data.data_dir=/path/to/prism-evalsets
-```
-
 ## 🚀 Quickstart
 
 ```bash
@@ -58,6 +26,37 @@ cd prism
 . ./setup_uv.sh
 
 ```
+
+## Description
+
+A benchmark for evaluating phonetic capabilities of speech models.
+
+## 📚 Datasets
+
+PRiSM datasets are organized in the Hugging Face collection: [changelinglab/prism](https://huggingface.co/collections/changelinglab/prism).
+
+The benchmark currently uses the following dataset sources for extrinsic tasks:
+
+| Task | HF-Repo | Task |
+| --- | --- | --- |
+| `DYS-ez` | `changelinglab/easycall-dysarthria` | Dysarthria Intelligibility Prediction |
+| `CSD-us` | `changelinglab/ultrasuite-benchmark` | Atypical child speech classification |
+| `L1-eda` | `changelinglab/edacc-l1cls` | L1 classification |
+| `L1-arc` | `changelinglab/cmul2arctic-l1cls` | L1 Classification |
+| `L2-so` | `changelinglab/speechocean-l2eval` | L2 assessment |
+| `LID-fl` | `changelinglab/fleurs24-lid` | Language Identification |
+| `GEO-v` | `shikhar7ssu/vaani-hi-geo` | Speech geolocation (To be released!) |
+
+For intrinsic task (Phone Recognition), PRiSM evaluation configs include Kaldi-style test sets (`doreco`, `gmuaccent`, `l2arctic_perceived`, `timit`, `tusom2021`, `voxangeles`) via `configs/data/powsm_evalset_index.yaml`.
+
+To set up evalset-index data, download the corresponding `*-pr` dataset repos from the collection into one root directory, then point `data.data_dir` to that root when running inference/evaluation. The expected layout under that root must match `configs/data/powsm_evalset_index.yaml` (each dataset directory contains `wav.scp`, `text.good`, and language files).
+
+After data download, PR inference can be run with:
+```bash
+# run with evalset index (override data_dir)
+python src/main.py experiment=inference/transcribe_powsm data=powsmeval data.data_dir=/path/to/prism-evalsets
+```
+
 
 ## How to run
 
