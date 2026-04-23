@@ -53,7 +53,7 @@ VLLM_EXECUTABLE=exp/download/vllm_arm.sif
 # TOTAL_LENGTH=8192
 # MODEL=nvidia/audio-flamingo-3-hf
 MODEL=Qwen/Qwen3-Omni-30B-A3B-Instruct
-TOTAL_LENGTH=4096
+TOTAL_LENGTH=8192
 ###########################
 ###########################
 apptainer exec --cleanenv --nv \
