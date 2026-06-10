@@ -45,6 +45,7 @@ phonemizer==3.3.0
 flashlight-text==0.0.7
 pytest-mock==3.15.1
 git+https://github.com/changelinglab/phone-inventory-metric@v0.2.5
+git+https://github.com/juice500ml/phonological-posteriogram@main
 
 # OPTIONAL
 wandb==0.22.1
