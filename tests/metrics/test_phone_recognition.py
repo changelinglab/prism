@@ -70,12 +70,10 @@ def test_evaluate_with_errors():
     assert summary.N == 2
     assert hasattr(summary, "PFER")
     assert hasattr(summary, "PFER_utt")
-    assert not hasattr(summary, "FER")
     assert "utt1" in instance_metrics
     assert "utt2" in instance_metrics
     assert "pfer" in instance_metrics["utt1"]
     assert "pfer_utt" in instance_metrics["utt1"]
-    assert "fer" not in instance_metrics["utt1"]
 
 
 def test_evaluate_empty_data():

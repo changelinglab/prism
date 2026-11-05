@@ -72,7 +72,7 @@ class PhoneRecognitionEvaluator:
     Evaluates phone recognition output using panphon feature-based metrics.
 
       * PER (phone error rate, %)
-      * PFER (feature error rate, %)
+      * PFER (phone feature error rate, %)
       * PFER_utt (phone feature error rate averaged per utterance)
       * FED (total feature edit distance)
       * per-utterance metrics
