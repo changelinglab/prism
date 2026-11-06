@@ -68,8 +68,12 @@ def test_evaluate_with_errors():
     assert isinstance(summary, PhoneRecognitionSummary)
     assert summary.PER > 0  # Should have errors
     assert summary.N == 2
+    assert hasattr(summary, "PFER")
+    assert hasattr(summary, "PFER_utt")
     assert "utt1" in instance_metrics
     assert "utt2" in instance_metrics
+    assert "pfer" in instance_metrics["utt1"]
+    assert "pfer_utt" in instance_metrics["utt1"]
 
 
 def test_evaluate_empty_data():
@@ -214,4 +218,3 @@ def test_load_predictions_raw_single_jsonl_via_glob(tmp_path):
     assert len(loaded) == 2
     assert "0" in loaded
     assert "1" in loaded
-

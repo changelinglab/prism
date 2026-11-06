@@ -55,8 +55,8 @@ log = RankedLogger(__name__, rank_zero_only=True)
 class PhoneRecognitionSummary:
     """Aggregate metrics for a phone recognition experiment."""
 
+    PFER_utt: float
     PFER: float
-    FER: float
     FED: float
     PER: float
     SUB: float
@@ -72,9 +72,9 @@ class PhoneRecognitionEvaluator:
     Evaluates phone recognition output using panphon feature-based metrics.
 
       * PER (phone error rate, %)
-      * FER (feature error rate, %)
+      * PFER (phone feature error rate, %)
+      * PFER_utt (phone feature error rate averaged per utterance)
       * FED (total feature edit distance)
-      * PFER (phone feature error rate averaged per utterance)
       * per-utterance metrics
 
     Assumes `test_data` is a dict:
@@ -145,13 +145,13 @@ class PhoneRecognitionEvaluator:
         Compute metrics for a single utterance.
 
         Returns:
-            (metrics_dict, pfer, fed, per_errors, n_phones)
+            (metrics_dict, pfer_utt, fed, per_errors, n_phones)
         """
         hyp = self._prepare(hyp)
         ref = self._prepare(ref)
 
         # Phone feature distances
-        pfer = self.dst.hamming_feature_edit_distance(hyp, ref)
+        pfer_utt = self.dst.hamming_feature_edit_distance(hyp, ref)
         fed = self.dst.feature_edit_distance(hyp, ref)
 
         # PER via min_edit_distance over IPA segments
@@ -172,14 +172,14 @@ class PhoneRecognitionEvaluator:
         )
 
         metrics = {
-            "pfer": float(pfer),
+            "pfer_utt": float(pfer_utt),
             "fed": float(fed),
             "per": float(per_errors / n_phones * 100) if n_phones > 0 else 0.0,
-            "fer": float(fed / n_phones * 100) if n_phones > 0 else 0.0,
+            "pfer": float(fed / n_phones * 100) if n_phones > 0 else 0.0,
         }
         out = {
             "metrics": metrics,
-            "pfer": pfer,
+            "pfer_utt": pfer_utt,
             "fed": fed,
             "per_errors": per_errors,
             "sub_errors": sub_errors,
@@ -245,12 +245,12 @@ class PhoneRecognitionEvaluator:
         Returns:
             summary: PhoneRecognitionSummary (aggregate metrics)
             instance_metrics: per-utterance metrics, same keys as original script:
-                             {utt_id: {"pfer":..., "fed":..., "per":..., "fer":...}}
+                             {utt_id: {"pfer_utt":..., "fed":..., "per":..., "pfer":...}}
         """
         if not test_data:
             empty_summary = PhoneRecognitionSummary(
+                PFER_utt=0.0,
                 PFER=0.0,
-                FER=0.0,
                 FED=0.0,
                 PER=0.0,
                 N=0,
@@ -258,12 +258,13 @@ class PhoneRecognitionEvaluator:
                 SUB=0.0,
                 INS=0.0,
                 DEL=0.0,
+                inventory=setkeydict(),
             )
             return empty_summary, {}
 
         instance_metrics: Dict[str, Dict[str, float]] = {}
 
-        pfer_sum = 0.0
+        pfer_utt_sum = 0.0
         fed_sum = 0.0
         per_err_sum = 0.0
         phones_sum = 0
@@ -281,7 +282,7 @@ class PhoneRecognitionEvaluator:
             out = self._compute_utterance_metrics(hyp, ref)
 
             instance_metrics[utt_id] = out["metrics"]
-            pfer_sum += out["pfer"]
+            pfer_utt_sum += out["pfer_utt"]
             fed_sum += out["fed"]
             per_err_sum += out["per_errors"]
             phones_sum += out["n_phones"]
@@ -291,8 +292,8 @@ class PhoneRecognitionEvaluator:
             n_utts += 1
 
         summary = PhoneRecognitionSummary(
-            PFER=pfer_sum / n_utts if n_utts > 0 else 0.0,
-            FER=(fed_sum / phones_sum * 100) if phones_sum > 0 else 0.0,
+            PFER_utt=pfer_utt_sum / n_utts if n_utts > 0 else 0.0,
+            PFER=(fed_sum / phones_sum * 100) if phones_sum > 0 else 0.0,
             FED=fed_sum,
             PER=(per_err_sum / phones_sum * 100) if phones_sum > 0 else 0.0,
             SUB=(sub_err_sum / phones_sum * 100) if phones_sum > 0 else 0.0,
@@ -313,8 +314,8 @@ class PhoneRecognitionEvaluator:
         t.add_column("Value", justify="right")
         t.add_row("Utterances (N)", f"{summary.N}")
         t.add_row("Total Phones", f"{summary.phones}")
-        t.add_row("PFER (avg per utt)", f"{summary.PFER:.4f}")
-        t.add_row("FER (%)", f"{summary.FER:.2f}")
+        t.add_row("PFER (%)", f"{summary.PFER:.2f}")
+        t.add_row("PFER_utt (avg per utt)", f"{summary.PFER_utt:.4f}")
         t.add_row("FED (total)", f"{summary.FED:.2f}")
         t.add_row("PER (%)", f"{summary.PER:.2f}")
         t.add_row("SUB (%)", f"{summary.SUB:.2f}")
@@ -407,7 +408,7 @@ class PhoneRecognitionEvaluator:
                         "N",
                         "Total Phones",
                         "PFER",
-                        "FER (%)",
+                        "PFER_utt",
                         "FED",
                         "PER (%)",
                         "SUB (%)",
@@ -422,8 +423,8 @@ class PhoneRecognitionEvaluator:
                     language,
                     summary.N,
                     summary.phones,
-                    f"{summary.PFER:.4f}",
-                    f"{summary.FER:.2f}",
+                    f"{summary.PFER:.2f}",
+                    f"{summary.PFER_utt:.4f}",
                     f"{summary.FED:.2f}",
                     f"{summary.PER:.2f}",
                     f"{summary.SUB:.2f}",
